@@ -1,23 +1,30 @@
+import sys
 import os
 
 import requests
 from lxml import html
 
 
-def get_data(url):
-    fname = os.path.basename(url)
-    if os.path.exists(fname):
-        return open(fname, encoding="utf-8").read()
-    r = requests.get(url, allow_redirects=True)
-    open(os.path.basename(url), "wb").write(r.content)
-    return r.content
+def load_data(url, fname=None):
+    if fname is None:
+        fname = os.path.basename(url)
+    if not os.path.exists(fname):
+        r = requests.get(url, allow_redirects=True)
+        open(fname, "wb").write(r.content)
+
+
+def get_data(url, fname=None):
+    load_data(url, fname)
+    if fname is None:
+        fname = os.path.basename(url)
+    return open(fname, encoding="utf-8").read()
 
 
 def country_id(flag_url):
     return int(flag_url.lstrip("/img/country/").rstrip("flag.png"))
 
 
-def parse_seas(url, countries):
+def parse_seas(url, countries, f=sys.stdout):
     s = get_data(url)
     tree = html.fromstring(s)
     first = True
@@ -27,6 +34,9 @@ def parse_seas(url, countries):
             continue
         cols = row.xpath(".//td")
         img = cols[0].xpath(".//span/img/@src")[0]
+        fname = img.lstrip("/img").replace("/", "_")
+        load_data(
+            os.path.dirname(url) + "/" + img, os.path.join("imgs", fname))
         names = list(cols[0].itertext())
         name0 = names[0].strip()
         if len(names) > 1:
@@ -38,8 +48,17 @@ def parse_seas(url, countries):
         ocean = cols[4].text.strip()
         ids = list(map(country_id, cols[1].xpath(".//img/@src")))
         country_names = map(lambda id_: countries[id_], ids)
-        country_names = " ".join(country_names)
-        print(name0, name1, ocean, img, area, depth, country_names, sep=";")
+        country_names = ", ".join(country_names)
+        print(
+            name0,
+            name1,
+            ocean,
+            f'<img src="{fname}">',
+            area,
+            depth,
+            country_names,
+            sep=";",
+            file=f)
 
 
 def parse_countries(url):
@@ -60,12 +79,13 @@ def parse_countries(url):
 
 def main():
     res = parse_countries("https://geo.koltyrin.ru/strany_mira.php")
-    res.update(parse_countries("https://geo.koltyrin.ru/strany_mira_zavisimye.php"))
-    res.update(parse_countries("https://geo.koltyrin.ru/strany_mira_nepriznannye.php"))
-    from pprint import pprint
-
-    pprint(res)
-    parse_seas("https://geo.koltyrin.ru/morja.php", res)
+    res.update(
+        parse_countries("https://geo.koltyrin.ru/strany_mira_zavisimye.php"))
+    res.update(
+        parse_countries(
+            "https://geo.koltyrin.ru/strany_mira_nepriznannye.php"))
+    parse_seas("https://geo.koltyrin.ru/morja.php", res,
+               open('seas.txt', 'w', encoding='utf-8'))
 
 
 if __name__ == "__main__":
