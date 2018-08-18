@@ -131,6 +131,30 @@ def parse_lakes(url, countries, f=sys.stdout):
         )
 
 
+def parse_islands(url, countries, f=sys.stdout):
+    s = get_data(url)
+    tree = html.fromstring(s)
+    for row in tree.xpath("//table/tr")[1:]:
+        cols = row.xpath(".//td")
+        name = cols[0].xpath(".//text()")[0].strip()
+        img = cols[0].xpath(".//span/img/@src")[0]
+        fname = load_data(os.path.dirname(url) + "/" + img)
+        ids = list(map(country_id, cols[1].xpath(".//img[@class]/@src")))
+        country_names = map(lambda id_: countries[id_], ids)
+        country_names = ", ".join(country_names)
+        area = cols[2].text.strip()
+        continent = cols[3].text.strip()
+        print(
+            name,
+            f'<img src="{fname}">',
+            country_names,
+            area,
+            continent,
+            sep=';',
+            file=f,
+        )
+
+
 def main():
     res = parse_countries("https://geo.koltyrin.ru/strany_mira.php")
     res.update(
@@ -144,6 +168,8 @@ def main():
                   open('straits.txt', 'w', encoding='utf-8'))
     parse_lakes("https://geo.koltyrin.ru/ozera.php", res,
                 open('lakes.txt', 'w', encoding='utf-8'))
+    parse_islands("https://geo.koltyrin.ru/ostrova.php", res,
+                  open('islands.txt', 'w', encoding='utf-8'))
 
 
 if __name__ == "__main__":
