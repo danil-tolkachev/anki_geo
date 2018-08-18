@@ -5,18 +5,19 @@ import requests
 from lxml import html
 
 
-def load_data(url, fname=None):
-    if fname is None:
-        fname = os.path.join("data", os.path.basename(url))
-    if not os.path.exists(fname):
+def load_data(url):
+    fname = url.replace("https://geo.koltyrin.ru/", '')
+    fname = fname.replace("img/", '')
+    fname = fname.replace("/", "_")
+    if not os.path.exists(os.path.join('data', fname)):
         r = requests.get(url, allow_redirects=True)
-        open(fname, "wb").write(r.content)
+        open(os.path.join('data', fname), "wb").write(r.content)
     return fname
 
 
-def get_data(url, fname=None):
-    fname = load_data(url, fname)
-    return open(fname, encoding="utf-8").read()
+def get_data(url):
+    fname = load_data(url)
+    return open(os.path.join('data', fname), encoding="utf-8").read()
 
 
 def country_id(flag_url):
@@ -49,9 +50,7 @@ def parse_seas(url, countries, f=sys.stdout):
             continue
         cols = row.xpath(".//td")
         img = cols[0].xpath(".//span/img/@src")[0]
-        fname = img.lstrip("/img").replace("/", "_")
-        load_data(
-            os.path.dirname(url) + "/" + img, os.path.join("data", fname))
+        fname = load_data(os.path.dirname(url) + "/" + img)
         names = list(cols[0].itertext())
         name0 = names[0].strip()
         if len(names) > 1:
@@ -87,9 +86,7 @@ def parse_straits(url, countries, f=sys.stdout):
         cols = row.xpath(".//td")
         name = cols[0].xpath(".//text()")[0].strip()
         img = cols[0].xpath(".//span/img/@src")[0]
-        fname = img.lstrip("/img").replace("/", "_")
-        load_data(
-            os.path.dirname(url) + "/" + img, os.path.join("data", fname))
+        fname = load_data(os.path.dirname(url) + "/" + img)
         ids = list(map(country_id, cols[0].xpath(".//img[@class]/@src")))
         country_names = map(lambda id_: countries[id_], ids)
         country_names = ", ".join(country_names)
