@@ -27,12 +27,8 @@ def country_id(flag_url):
 def parse_countries(url):
     s = get_data(url)
     tree = html.fromstring(s)
-    first = True
     res = {}
-    for row in tree.xpath("//table/tr"):
-        if first:
-            first = False
-            continue
+    for row in tree.xpath("//table/tr")[1:]:
         cols = row.xpath(".//td")
         id_ = country_id(cols[0].xpath(".//img/@src")[0])
         name = cols[0].xpath(".//a/text()")[0]
@@ -43,11 +39,7 @@ def parse_countries(url):
 def parse_seas(url, countries, f=sys.stdout):
     s = get_data(url)
     tree = html.fromstring(s)
-    first = True
-    for row in tree.xpath("//table/tr"):
-        if first:
-            first = False
-            continue
+    for row in tree.xpath("//table/tr")[1:]:
         cols = row.xpath(".//td")
         img = cols[0].xpath(".//span/img/@src")[0]
         fname = load_data(os.path.dirname(url) + "/" + img)
@@ -78,11 +70,7 @@ def parse_seas(url, countries, f=sys.stdout):
 def parse_straits(url, countries, f=sys.stdout):
     s = get_data(url)
     tree = html.fromstring(s)
-    first = True
-    for row in tree.xpath("//table/tr"):
-        if first:
-            first = False
-            continue
+    for row in tree.xpath("//table/tr")[1:]:
         cols = row.xpath(".//td")
         name = cols[0].xpath(".//text()")[0].strip()
         img = cols[0].xpath(".//span/img/@src")[0]
