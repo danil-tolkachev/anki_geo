@@ -1,6 +1,8 @@
-import sys
 import os
+import sys
+from collections import OrderedDict
 
+import pandas as pd
 import requests
 from lxml import html
 
@@ -134,25 +136,25 @@ def parse_lakes(url, countries, f=sys.stdout):
 def parse_islands(url, countries, f=sys.stdout):
     s = get_data(url)
     tree = html.fromstring(s)
+    data = []
     for row in tree.xpath("//table/tr")[1:]:
         cols = row.xpath(".//td")
-        name = cols[0].xpath(".//text()")[0].strip()
         img = cols[0].xpath(".//span/img/@src")[0]
         fname = load_data(os.path.dirname(url) + "/" + img)
         ids = list(map(country_id, cols[1].xpath(".//img[@class]/@src")))
         country_names = map(lambda id_: countries[id_], ids)
-        country_names = ", ".join(country_names)
-        area = cols[2].text.strip()
-        continent = cols[3].text.strip()
-        print(
-            name,
-            f'<img src="{fname}">',
-            country_names,
-            area,
-            continent,
-            sep=';',
-            file=f,
-        )
+        data.append(
+            OrderedDict(
+                name=cols[0].xpath(".//text()")[0].strip(),
+                fname=f'<img src="{fname}">',
+                country_names=", ".join(country_names),
+                area=cols[2].text.strip(),
+                continent=cols[3].text.strip(),
+            ))
+    data = pd.DataFrame(data)
+    dubles = data.duplicated('name', False)
+    data.loc[dubles, 'name'] += ' (' + data[dubles].country_names + ')'
+    data.to_csv(f, sep=';', header=False, index=False)
 
 
 def main():
