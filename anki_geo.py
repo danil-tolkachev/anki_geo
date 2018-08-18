@@ -64,7 +64,8 @@ def parse_seas(url, countries, f=sys.stdout):
             depth,
             country_names,
             sep=";",
-            file=f)
+            file=f,
+        )
 
 
 def parse_straits(url, countries, f=sys.stdout):
@@ -92,7 +93,42 @@ def parse_straits(url, countries, f=sys.stdout):
             join,
             separate,
             sep=';',
-            file=f)
+            file=f,
+        )
+
+
+def parse_lakes(url, countries, f=sys.stdout):
+    s = get_data(url)
+    tree = html.fromstring(s)
+    for row in tree.xpath("//table/tr")[2:]:
+        cols = row.xpath(".//td")
+        name = cols[0].xpath(".//text()")[0].strip()
+        img = cols[0].xpath(".//span/img/@src")[0]
+        fname = load_data(os.path.dirname(url) + "/" + img)
+        ids = list(map(country_id, cols[0].xpath(".//img[@class]/@src")))
+        country_names = map(lambda id_: countries[id_], ids)
+        country_names = ", ".join(country_names)
+        area = cols[1].text.strip()
+        max_depth = cols[2].text.strip()
+        avg_depth = cols[3].text.strip()
+        elevation = cols[4].text.strip()
+        saltiness = cols[5].text.strip()
+        outflow = cols[6].text.strip() if cols[6].text else 'нет'
+        continent = cols[7].text.strip()
+        print(
+            name,
+            f'<img src="{fname}">',
+            country_names,
+            area,
+            max_depth,
+            avg_depth,
+            elevation,
+            saltiness,
+            outflow,
+            continent,
+            sep=';',
+            file=f,
+        )
 
 
 def main():
@@ -106,6 +142,8 @@ def main():
                open('seas.txt', 'w', encoding='utf-8'))
     parse_straits("https://geo.koltyrin.ru/prolivy.php", res,
                   open('straits.txt', 'w', encoding='utf-8'))
+    parse_lakes("https://geo.koltyrin.ru/ozera.php", res,
+                open('lakes.txt', 'w', encoding='utf-8'))
 
 
 if __name__ == "__main__":
