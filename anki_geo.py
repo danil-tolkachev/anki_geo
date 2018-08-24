@@ -157,6 +157,41 @@ def parse_islands(url, countries, f=sys.stdout):
     data.to_csv(f, sep=';', header=False, index=False)
 
 
+def parse_mountains(url, countries, f=sys.stdout):
+    s = get_data(url)
+    tree = html.fromstring(s)
+    data = []
+    for row in tree.xpath("//table/tr")[1:]:
+        cols = row.xpath(".//td")
+        img = cols[0].xpath(".//span/img/@src")[0]
+        fname = load_data(os.path.dirname(url) + "/" + img)
+        ids = list(map(country_id, cols[1].xpath(".//img[@class]/@src")))
+        country_names = map(lambda id_: countries[id_], ids)
+        pick = list(cols[5].itertext())
+        if len(pick) == 2:
+            pick_name, pick_height = pick
+        else:
+            pick_name = None
+            [pick_height] = pick
+        pick_height = pick_height.replace(' м', '')
+        data.append(
+            OrderedDict(
+                name=cols[0].xpath(".//text()")[0].strip(),
+                fname=f'<img src="{fname}">',
+                country_names=", ".join(country_names),
+                area=cols[2].text.replace(' ', ''),
+                length=cols[3].text.replace(' ', ''),
+                width=cols[4].text.replace(' ', ''),
+                pick_name=pick_name,
+                pick_height=pick_height,
+                continent=cols[6].text.strip(),
+            ))
+    data = pd.DataFrame(data)
+    data[data == '?'] = None
+    data[data == '-'] = None
+    data.to_csv(f, sep=';', header=False, index=False)
+
+
 def main():
     res = parse_countries("https://geo.koltyrin.ru/strany_mira.php")
     res.update(
@@ -172,6 +207,8 @@ def main():
                 open('lakes.txt', 'w', encoding='utf-8'))
     parse_islands("https://geo.koltyrin.ru/ostrova.php", res,
                   open('islands.txt', 'w', encoding='utf-8'))
+    parse_mountains("https://geo.koltyrin.ru/gornye_sistemy.php", res,
+                    open('mountains.txt', 'w', encoding='utf-8'))
 
 
 if __name__ == "__main__":
